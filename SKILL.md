@@ -42,6 +42,28 @@ description: Author or review static HTML/CSS that will be converted to PSD by w
 
 ## 三、结构与绘制
 
+- **每个模块 = `<main>` 的直接子元素**。转换器按这个切分组：`<main>` 的每个直接子元素各成一个图层组，组名取组内第一个 `h1/h2/h3` 的文字。页头、页脚、浮层放在 `<main>` 外面，并且不要被 `<section>` 包住——`<header>`/`<footer>`/`<aside>` 这样会单独成「页头/页脚/快捷联系」组，被 `<section>` 包住则会并进外层模块。
+  **没有 `<main>` 时，整页会并进根节点一个组、组名取第一个 `h1`**，而这个错误只有 PSD 生成后才看得见（一次 native 要 8–9 分钟）。
+  ```html
+  <div class="page">
+    <header class="header">…</header>
+    <main>
+      <section class="hero">…<h1>…</h1></section>
+      <section class="detail">…<h2>…</h2></section>
+      <section class="related">…<h2>…</h2></section>
+    </main>
+    <footer class="footer">…</footer>
+    <aside class="floatbar">…</aside>
+  </div>
+  ```
+  可直接用的完整骨架见 [references/template.html](references/template.html)。
+- **整页铺满视口**：横向铺到视口两边，不要把整页装进一个定宽盒子。
+  - `body` 和页面根容器不写 `width`/`max-width`/左右 `padding`；**只有内容版心**（如 `.wrap`）用固定宽度居中。
+  - 所有带底色的区块（首屏、灰底区、CTA、页脚）都是 block，背景自然铺满，不要再给它们套 `width:1440px`；否则宽视口会在两侧露出白边或上一块的底色。
+  - 满屏媒体（banner、分隔图）用 `width:100%` + `height:Npx` + `object-fit:cover`，**不要写死 `1920px`**。
+  - 纵向：页面从 y=0 开始、到页脚结束，上下不留白；首屏内容在 1080 高视口内要完整可见。
+  - 例外：设计稿本身就是"居中的固定画布"（如移动端 mock）时，在交付说明里写明，并接受抓取时两侧留白。
+  - 验证：抓取后看截图最外侧一列像素——首屏、灰底区、页脚都必须是设计底色，不能是白色或另一块的背景。
 - **一个视觉盒子一个元素**：底色、边框、圆角、阴影写在同一元素上，不要拆成多层 div 叠出来。
 - 纯色面用 `background-color`；渐变/图片背景只能进图集，纯色才能成为原生形状层。
 - 圆角用 `border-radius`（四角可不同），不要用 `clip-path` 或遮罩图。
@@ -50,6 +72,24 @@ description: Author or review static HTML/CSS that will be converted to PSD by w
 - 图标用自包含内联 `<svg>`（每个图标一个），不要图标字体、不要外部 sprite/`<use>`。
 - 分隔线用容器的 `border`，不要为每条线加一个空 div。
 - 删掉纯定位 wrapper，DOM 层级建议 ≤ 8。
+
+### 四个已实测的陷阱
+
+1. **半像素落位**：图片和纯色面在 PSD 里按渲染矩形落位，`x/y` 带 `.5` 就会被重采样发虚。常见来源是奇数高度里的 `align-items:center`（550 高容器里居中 389 高的图 → y=80.5）、分数宽度网格里的 `margin:auto`（465.33 宽的卡片）、`border-collapse` 表格（表格线落在 `.5`）。
+   修法：居中改成整数 `padding-top`；网格列写死整数（`465px 465px 466px`）；表格用 `border-collapse:separate` + 单边 `border-right/bottom`。
+   检查：抓取后扫 `web_dom.json`，图片与形状的 `rect.x/y` 应全部是整数。
+2. **照片上的文字**：不能用渐变遮罩时，加一层半透明纯色遮罩（单独一个元素，如 `rgba(8,42,72,.62)`），或让文字块自带底色；按照片最亮处调不透明度。文字直接压在亮窗或白墙上一眼就读不清，PSD 阶段也无法补救。
+3. **`box-sizing:border-box` 吃掉内联图标的 padding**：全局 `*{box-sizing:border-box}` 下，`svg{width:10px;padding:0 14px}` 的内容宽度会被算成 0，图形直接消失。用 flex 居中替代 padding 撑开，或对那个元素显式 `box-sizing:content-box`。
+4. **按 1920 设计的页面忘了 `min-width`**：窗口比设计宽度窄时，版心会被挤变形，加 `body{min-width:1920px}` 解决；反过来，满屏媒体不要写死 `width:1920px`，用 `width:100%`（见上面「整页铺满视口」）。
+
+### 同站多页：复用已验证的骨架
+
+同一站点的第二张页面不要重新推导布局。把已经过 `capture` + `prepare` 的页面的样式拆成两份：
+
+- `base.css`：设计令牌、版心、页头、页脚、CTA、浮条——整站共用；
+- `page.css`：本页 `section` 的样式。
+
+新页面只写 `<main>` 里的 section。页头/页脚/CTA/浮条通常占单页样式的 40% 以上，复用这一块能把写页面的时间压下来，也避免每页的页头页脚各写一版、各踩一次对齐坑。
 
 ## 四、文字
 
@@ -75,11 +115,11 @@ description: Author or review static HTML/CSS that will be converted to PSD by w
 - 非活动轮播页用 `display:none`/`visibility:hidden`，不要用 `translateX` 移出画布。
 - 不要滚动触发 reveal、入场动画、`setInterval` 改样式；抓取会滚整页并比对前后 DOM。
 - 需要 JS 渲染的内容，确保在 `load` 前完成且之后不再变。
-- 固定/悬浮控件最多一个，放在 DOM 末尾；不要用 fixed 承载主要内容。
+- 固定/悬浮控件最多一个，放在 DOM 末尾；静态稿优先用 `position:absolute` 钉在页面坐标上（页头同理），只有确实需要跟随滚动才用 `fixed`——fixed 元素按滚动 0 处入图，位置随视口高度变化。
 
 ## 七、命名与分组
 
-- 模块用 `<section>`/`<header>`/`<footer>` + 可见标题，转换器按标题生成图层组。
+- 每个模块是 `<main>` 的直接子元素，组名取组内第一个 `h1/h2/h3`；页头/页脚/浮层留在 `<main>` 外。详见第三节「结构与绘制」。
 - 第一个语义 class 要可读：图层名取 `文字 / alt / class`，`class="product-card"` 远好于 `class="a"`。
 - 图片 `alt` 写清楚，它会成为图层名。
 - 保持 DOM 顺序 = 视觉顺序；少用负 `z-index` 重排。
@@ -107,6 +147,9 @@ position: fixed      (统计数量)
 - 抓取：`stable: true`、无 warnings、无 `assetFailures`
 - `prepare`：`atoms` ≤ 400、`pages` ≤ 8、`imageFallbacks` 为空
 - `web_dom.json`：`elements` ≤ 800，文本字符量在预算内
+- 分组：模块组数应等于 `<main>` 直接子元素数（另加页头/页脚/浮层）。整页只有 1 个组，说明 `<main>` 没生效，先修结构再进 native。
+- 几何：图片与纯色面的 `rect.x/y` 应全是整数，没有 `.5`。
+- 铺满：截图最外侧一列（首屏、灰底区、页脚）是设计底色，不是白边；`documentHeight` 从页面顶部算起，页脚后无额外留白。
 
 超预算就回去合并盒子、删装饰、拆长文；不要靠提高渲染倍率或换机器解决。
 

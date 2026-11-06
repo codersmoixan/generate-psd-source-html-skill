@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PSD 源页面骨架</title>
+<style>
+/* ==========================================================================
+   PSD 源页面骨架：结构、几何、绘制都按“会被 webpage-to-psd 读取”来写。
+   1) 内容放在 <main> 里，一个语义块一个直接子元素 —— 转换器按这个切分组
+   2) 图片与形状的 x/y/w/h 全部落在整数像素
+   3) 纯色面（原生形状层），不叠渐变、不叠阴影
+   4) 版心、网格列宽写死整数，不用百分比 + auto 居中
+   5) 整页铺满视口：区块背景横向到边，只有 .wrap 定宽居中
+   打开即可看到完整结构，不需要任何外部资源。
+   ========================================================================== */
+
+:root {
+  /* 换成你的设计令牌 */
+  --ink-deep: #0b2943;
+  --accent: #003575;
+  --ink: #354756;
+  --muted: #8897a5;
+  --line: #e7edf2;
+  --surface: #f4f6f8;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  min-width: 1920px;              /* 固定设计宽度：窗口变窄时整页不挤压 */
+  margin: 0;
+  background: #fff;
+  color: var(--ink);
+  font-family: 'Microsoft YaHei', Arial, sans-serif;
+  font-size: 19px;
+  line-height: 34px;              /* 整数行高 */
+}
+
+h1, h2, h3, h4, p, dl, dd, figure { margin: 0; }
+img { display: block; }
+a { color: inherit; text-decoration: none; }
+
+.page { position: relative; }     /* 浮层用 absolute 钉在这上面 */
+.wrap { width: 1440px; margin: 0 auto; }   /* 版心写死，不用百分比 */
+
+/* ---------- 页头：绝对定位，不参与文档流，抓取时位置确定 ---------- */
+
+.header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 90px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+}
+
+.header-inner {
+  width: 1800px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.brand { width: 120px; height: 40px; background: rgba(255, 255, 255, 0.18); }  /* 换成 <img width="120" height="40" alt="公司名"> */
+
+.nav { display: flex; gap: 48px; margin-left: auto; }
+.nav a { color: #d5dce5; font-size: 15px; }
+.nav a.is-active { color: #fff; font-weight: 600; }
+
+/* ---------- 首屏 ---------- */
+
+.hero {
+  position: relative;
+  height: 620px;
+  background: var(--ink-deep);     /* 换成照片时删掉背景色 */
+  color: #fff;
+  overflow: hidden;
+}
+
+/* 换成照片时（不要用 background-image，用 <img>），把下面这段取消注释。
+   注意：宽度用 100% 铺满，不要写死 1920px，否则宽视口右侧留白。
+   <img class="hero-image" src="assets/hero.jpg" alt="低温管路车间" width="1920" height="620">
+.hero-image {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 620px;
+  object-fit: cover;
+}
+*/
+
+.hero-copy { position: relative; padding-top: 200px; }
+.hero-copy h1 { font-size: 58px; line-height: 87px; font-weight: 400; }
+.hero-copy p { margin-top: 12px; color: #d3dce4; font-size: 25px; line-height: 38px; }
+.hero-rule { width: 48px; height: 3px; margin-top: 30px; background: #38a0dc; }
+
+/* 照片上的文字：如果没有渐变可用，就加一层半透明纯色遮罩（单独一个元素）
+   <div class="hero-shade"></div>
+   .hero-shade { position:absolute; inset:0; background: rgba(8,42,72,.62); }
+   遮罩颜色按照片最亮处调到能读清为止。 */
+
+/* ---------- 正文模块 ---------- */
+
+.section { padding: 80px 0; }
+.section.is-gray { background: var(--surface); }
+
+.section-head { margin-bottom: 42px; }
+.eyebrow { color: var(--accent); font-size: 12px; line-height: 20px; letter-spacing: 2px; }
+.section-head h2 { color: var(--ink-deep); font-size: 38px; line-height: 57px; font-weight: 400; }
+
+/* 卡片网格：列宽写死整数，(1440 - 2*22) / 3 = 465.33 → 465 + 465 + 466 */
+.card-grid {
+  display: grid;
+  grid-template-columns: 465px 465px 466px;
+  gap: 22px;
+}
+
+.card {
+  display: block;
+  padding: 25px;
+  background: #fff;                /* 纯色 → 原生形状层 */
+  border: 1px solid var(--line);   /* 边框写在同一个元素上 */
+}
+
+.card-media {                  /* 图片位：固定宽高，避免半像素 */
+  width: 415px;
+  height: 150px;
+  margin: 0 auto;
+  background: var(--surface);  /* 换成 <img width="415" height="150" object-fit:contain> */
+}
+
+.card h3 { margin-top: 16px; color: var(--ink-deep); font-size: 18px; line-height: 27px; font-weight: 400; }
+
+/* ---------- 文本模块 ---------- */
+
+.copy { width: 900px; }
+.copy p { margin-bottom: 16px; color: #6a7d8b; font-size: 15px; line-height: 33px; }
+
+/* ---------- CTA ---------- */
+
+.cta { padding: 37px 0; background: var(--accent); color: #fff; }
+.cta-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.cta h3 { font-size: 27px; line-height: 40px; font-weight: 400; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 32px;
+  padding: 10px 20px;
+  background: #004eb3;             /* 按钮也是纯色面 */
+  color: #fff;
+  font-size: 15px;
+  line-height: 30px;
+}
+
+/* ---------- 页脚 ---------- */
+
+.footer { padding: 60px 0; background: var(--ink-deep); color: #c1cfdb; }
+.footer-inner { display: flex; align-items: center; justify-content: space-between; }
+.footer p { color: #92a8bf; font-size: 12px; line-height: 28px; }
+
+/* ---------- 快捷联系：absolute 钉在页面坐标上，不用 fixed ---------- */
+
+.floatbar {
+  position: absolute;
+  right: 7px;
+  top: 1040px;                 /* 页面坐标，抓取时位置确定 */
+  width: 62px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+
+.floatbar-item {
+  display: block;
+  padding: 8px 3px;
+  border-bottom: 1px solid var(--line);
+  color: #8e9bab;
+  font-size: 10px;
+  line-height: 15px;
+  text-align: center;
+}
+
+.floatbar-item.is-active { background: #004eb3; color: #fff; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="header">
+    <div class="header-inner">
+      <a class="brand" href="#" aria-label="公司首页"></a>
+      <nav class="nav" aria-label="主导航">
+        <a href="#">首页</a>
+        <a class="is-active" href="#">产品中心</a>
+        <a href="#">解决方案</a>
+        <a href="#">关于我们</a>
+        <a href="#">联系我们</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 正文全部在 <main> 里；每个 section 是 <main> 的直接子元素，各自成一个图层组 -->
+  <main>
+
+    <section class="hero">
+      <!-- 换成照片时把下面的 .hero-image 放回来，并删掉 .hero 的背景色 -->
+      <div class="wrap hero-copy">
+        <div class="eyebrow">PRODUCT INFORMATION</div>
+        <h1>专业装备 · 连通应用价值</h1>
+        <p>从选型到系统配套，为工业与科研提供装备支持</p>
+        <div class="hero-rule"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="eyebrow">PRODUCT SYSTEMS</div>
+          <h2>产品系统</h2>
+        </div>
+        <div class="card-grid">
+          <a class="card" href="#">
+            <div class="card-media"></div>
+            <h3>真空绝热软管</h3>
+          </a>
+          <a class="card" href="#">
+            <div class="card-media"></div>
+            <h3>低温真空阀门</h3>
+          </a>
+          <a class="card" href="#">
+            <div class="card-media"></div>
+            <h3>气液分离器</h3>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section is-gray">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="eyebrow">ABOUT</div>
+          <h2>产品说明</h2>
+        </div>
+        <div class="copy">
+          <p>一个段落一个文本节点。需要刻意换行时用 br，不要为样式把一句话拆成多个 span。</p>
+          <p>行高、字距用整数 px；正文颜色与背景的对比要够，否则 PSD 里文字层会发虚。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section cta">
+      <div class="wrap cta-inner">
+        <h3>让专业装备，适配您的应用场景</h3>
+        <a class="btn" href="#">联系技术团队</a>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <p>© 公司名称</p>
+      <p>技术支持 某某网络</p>
+    </div>
+  </footer>
+
+  <aside class="floatbar" aria-label="快捷联系">
+    <a class="floatbar-item is-active" href="#">在线咨询</a>
+    <a class="floatbar-item" href="#">咨询电话</a>
+    <a class="floatbar-item" href="#">邮件联系</a>
+    <a class="floatbar-item" href="#">返回顶部</a>
+  </aside>
+
+</div>
+</body>
+</html>
